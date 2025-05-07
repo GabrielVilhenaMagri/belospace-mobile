@@ -1,0 +1,150 @@
+import 'package:flutter/material.dart';
+import 'package:coworking_app/components/header.dart';
+import 'login_screen.dart'; // Para o logout
+
+class ProfileScreen extends StatelessWidget {
+  final String userName;
+  final String userEmail;
+  final String? userPhotoUrl;
+
+  const ProfileScreen({
+    super.key,
+    required this.userName,
+    required this.userEmail,
+    this.userPhotoUrl,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: const CustomHeader(
+        title: "Meu Perfil",
+        showBackButton: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            _buildProfilePicture(),
+            const SizedBox(height: 20),
+            _buildUserInfoCard(context),
+            const SizedBox(height: 30),
+            _buildLogoutButton(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfilePicture() {
+    return CircleAvatar(
+      radius: 60,
+      backgroundColor: const Color(0xFFB88E2F).withOpacity(0.2),
+      backgroundImage: userPhotoUrl != null ? NetworkImage(userPhotoUrl!) : null,
+      child: userPhotoUrl == null
+          ? const Icon(Icons.person, size: 60, color: Color(0xFFB88E2F))
+          : null,
+    );
+  }
+
+  Widget _buildUserInfoCard(BuildContext context) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildInfoRow(Icons.person, "Nome", userName),
+            const Divider(),
+            _buildInfoRow(Icons.email, "E-mail", userEmail),
+            const Divider(),
+            _buildInfoRow(Icons.date_range, "Membro desde", "Jan 2023"),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFFB88E2F)),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red[50],
+          foregroundColor: Colors.red,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: () => _showLogoutConfirmation(context),
+        child: const Text("SAIR DA CONTA"),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Sair da conta"),
+        content: const Text("Tem certeza que deseja sair da sua conta?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
+            },
+            child: const Text(
+              "Sair",
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
+import 'screens/rooms_screen.dart';
+import 'screens/create_reservation_screen.dart';
+import 'screens/reservation_details_screen.dart';
+import 'screens/edit_reservation_screen.dart'; // Adicione esta linha
+import 'models/reservation.dart';
+import 'screens/home_screen.dart';
+import 'package:coworking_app/screens/profile_screen.dart';
+
+void main() {
+  runApp(const CoworkingApp());
+}
+
+class CoworkingApp extends StatelessWidget {
+  const CoworkingApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Coworking App',
+      theme: ThemeData(
+        primarySwatch: MaterialColor(0xFFB88E2F, {
+          50: Color(0xFFF5EDE0),
+          100: Color(0xFFE8D3B3),
+          200: Color(0xFFD9B680),
+          300: Color(0xFFCA984D),
+          400: Color(0xFFBF8233),
+          500: Color(0xFFB88E2F), // Sua cor principal
+          600: Color(0xFFB07E29),
+          700: Color(0xFFA76B23),
+          800: Color(0xFF9F591D),
+          900: Color(0xFF8F3A12),
+        }),
+        colorScheme: ColorScheme.light(
+          primary: Color(0xFFB88E2F), // Cor primária
+          secondary: Color(0xFF6D4C41), // Cor secundária/accent
+        ),
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/register': (context) => const RegisterScreen(),
+        '/home': (context) => const HomeScreen(),
+        '/rooms': (context) => const RoomsScreen(),
+        '/createReservation': (context) => const CreateReservationScreen(),
+        '/editReservation': (context) => EditReservationScreen(
+          reservation: ModalRoute.of(context)!.settings.arguments as Reservation,
+        ),
+        '/reservationDetails': (context) => ReservationDetailsScreen(
+          reservation: ModalRoute.of(context)!.settings.arguments as Reservation,
+        ),
+        '/profile': (context) => ProfileScreen(
+          userName: 'Nome Usuário', // Substitua pelo valor real
+          userEmail: 'email@exemplo.com', // Substitua pelo valor real
+        ),
+      },
+    );
+  }
+}
