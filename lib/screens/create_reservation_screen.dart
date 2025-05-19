@@ -57,7 +57,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
           date: _dateController.text,
           time: _timeController.text,
           status: 'Ativa',
-          userId: 'user123', // Substitua pelo ID real
+          userId: 'user123',
       );
 
       ReservationManager.addReservation(newReservation);

@@ -57,7 +57,7 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.notifications_none, color: Colors.white),
           onPressed: () {
-            // Adicione ação de notificações aqui
+            //
           },
         ),
         const SizedBox(width: 8),
