@@ -7,7 +7,7 @@ class Reservation {
   final String time;
   final String status;
   final String userId;
-  final DateTime? canceledAt; // Tornado nullable
+  final DateTime? canceledAt; //
 
   Reservation({
     required this.id,

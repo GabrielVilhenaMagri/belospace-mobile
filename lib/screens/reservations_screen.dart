@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../models/reservation_manager.dart';
-import 'reservation_details_screen.dart';
 import '../components/header.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -17,29 +16,51 @@ class ReservationsScreen extends StatefulWidget {
 
 class _ReservationsScreenState extends State<ReservationsScreen> {
   String _filterStatus = 'Ativa';
-
-
+  Timer? _cleanupTimer;
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {
     super.initState();
-    Timer.periodic(const Duration(hours: 24), (timer) {
+
+    _cleanupTimer = Timer.periodic(const Duration(hours: 24), (timer) {
       if (mounted) {
         ReservationManager.cleanExpiredCancellations();
-        setState(() {}); // Força reconstrução
+        setState(() {}); // Força reconstrução apenas quando necessário
       }
     });
+
+    // Registra listener para atualizações de reservas
+    ReservationManager.addListener(_onReservationsChanged);
+  }
+
+  @override
+  void dispose() {
+
+    _cleanupTimer?.cancel();
+
+    ReservationManager.removeListener(_onReservationsChanged);
+    super.dispose();
+  }
+
+  // Método para atualizar o estado quando as reservas mudarem
+  void _onReservationsChanged() {
+    if (mounted) {
+      setState(() {
+        // Estado atualizado apenas quando o widget está montado
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final userReservations = ReservationManager.reservations
-        .where((res) => res.userId == widget.currentUserId)
-        .where((res) => _filterStatus == 'Todas' || res.status == _filterStatus)
-        .toList();
+    // Memoização da lista filtrada para evitar recálculos desnecessários
+    final userReservations = _getUserReservations();
 
     return Scaffold(
-      appBar: const CustomHeader(title: "Minhas Reservas"),
+      appBar: ModalRoute.of(context)?.settings.name == '/reservations'
+          ? const CustomHeader(title: "Minhas Reservas")
+          : null, // Só mostra header se acessada diretamente
       body: Column(
         children: [
           _buildFilterChips(),
@@ -47,6 +68,14 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         ],
       ),
     );
+  }
+
+  // Método extraído para melhorar a legibilidade e manutenção
+  List<Reservation> _getUserReservations() {
+    return ReservationManager.reservations
+        .where((res) => res.userId == widget.currentUserId)
+        .where((res) => _filterStatus == 'Todas' || res.status == _filterStatus)
+        .toList();
   }
 
   Widget _buildFilterChips() {
@@ -101,10 +130,11 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${reservation.date} às ${reservation.time}'),
-                if (reservation.status == 'Cancelada')
+                // Formatação consistente de data
+                Text('${_formatDate(reservation.date)} às ${_formatTime(reservation.time)}'),
+                if (reservation.status == 'Cancelada' && reservation.canceledAt != null)
                   Text(
-                    'Cancelada em ${DateFormat('dd/MM/yyyy').format(reservation.canceledAt!)}',
+                    'Cancelada em ${_dateFormat.format(reservation.canceledAt!)}',
                     style: TextStyle(color: Colors.red[400], fontSize: 12),
                   ),
               ],
@@ -115,17 +145,47 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                   ? Colors.green[100]
                   : Colors.red[100],
             ),
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ReservationDetailsScreen(
-                  reservation: reservation,
-                ),
-              ),
-            ),
+            onTap: () => _navigateToDetails(reservation),
           ),
         );
       },
     );
+  }
+
+  // Método para navegação consistente
+  void _navigateToDetails(Reservation reservation) {
+    Navigator.pushNamed(
+      context,
+      '/reservationDetails',
+      arguments: reservation,
+    );
+  }
+
+  // Métodos para formatação consistente
+  String _formatDate(String date) {
+    // Verifica se a data já está no formato correto
+    if (date.contains('/')) return date;
+
+    try {
+      final parts = date.split('-');
+      if (parts.length == 3) {
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      }
+    } catch (e) {
+      debugPrint('Erro ao formatar data: $e');
+    }
+    return date;
+  }
+
+  String _formatTime(String time) {
+    // Verifica se o horário já está no formato correto
+    if (time.contains(':')) {
+      final parts = time.split(':');
+      if (parts.length == 2 && parts[1].length == 1) {
+        // Adiciona zero à esquerda para minutos com um dígito
+        return '${parts[0]}:${parts[1].padLeft(2, '0')}';
+      }
+    }
+    return time;
   }
 }

@@ -1,9 +1,7 @@
-// screens/rooms_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/reservation.dart';
-import '../../models/reservation_manager.dart';
-import 'reservation_details_screen.dart';
-import '../components/header.dart';
+import '../models/reservation.dart';
+import '../models/reservation_manager.dart';
+import 'package:intl/intl.dart';
 
 class RoomsScreen extends StatefulWidget {
   const RoomsScreen({super.key});
@@ -13,23 +11,8 @@ class RoomsScreen extends StatefulWidget {
 }
 
 class _RoomsScreenState extends State<RoomsScreen> {
-
-  void _navigateToDetails(Reservation reservation) async {
-    final shouldRefresh = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ReservationDetailsScreen(
-          reservation: reservation,
-        ),
-      ),
-    );
-
-    if (shouldRefresh == true) {
-      _loadReservations();
-    }
-  }
-
   List<Reservation> _reservations = [];
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
   @override
   void initState() {
@@ -53,18 +36,37 @@ class _RoomsScreenState extends State<RoomsScreen> {
     }
   }
 
+  void _navigateToDetails(Reservation reservation) {
+    Navigator.pushNamed(
+      context,
+      '/reservationDetails',
+      arguments: reservation,
+    ).then((result) {
+      if (result == true) {
+        // Só atualiza se houver mudanças
+        _loadReservations();
+      }
+    });
+  }
+
+  void _createNewReservation() {
+    Navigator.pushNamed(context, '/createReservation').then((result) {
+      if (result == true) {
+        // Só atualiza se houver mudanças
+        _loadReservations();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: ModalRoute.of(context)?.settings.name == '/rooms'
-          ? const CustomHeader(title: "Salas Disponíveis")
+          ? AppBar(title: const Text("Salas Disponíveis"))
           : null, // Só mostra header se acessada diretamente
       body: _buildReservationsList(),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/createReservation');
-          _loadReservations();
-        },
+        onPressed: _createNewReservation,
         child: const Icon(Icons.add),
       ),
     );
@@ -80,22 +82,64 @@ class _RoomsScreenState extends State<RoomsScreen> {
       );
     }
 
+    // Filtra apenas reservas ativas para exibição
+    final activeReservations = _reservations
+        .where((res) => res.status == 'Ativa')
+        .toList();
+
+    if (activeReservations.isEmpty) {
+      return const Center(
+        child: Text(
+            'Nenhuma reserva ativa encontrada\nClique no botão + para criar uma',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18)),
+      );
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(8),
-      itemCount: _reservations.length,
+      itemCount: activeReservations.length,
       itemBuilder: (context, index) {
-        final reservation = _reservations[index];
+        final reservation = activeReservations[index];
         return Card(
           elevation: 2,
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: ListTile(
             title: Text(reservation.roomName),
-            subtitle: Text('${reservation.date} às ${reservation.time}'),
+            subtitle: Text('${_formatDate(reservation.date)} às ${_formatTime(reservation.time)}'),
             trailing: const Icon(Icons.arrow_forward),
             onTap: () => _navigateToDetails(reservation),
           ),
         );
       },
     );
+  }
+
+  // Métodos para formatação consistente
+  String _formatDate(String date) {
+    // Verifica se a data já está no formato correto
+    if (date.contains('/')) return date;
+
+    try {
+      final parts = date.split('-');
+      if (parts.length == 3) {
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      }
+    } catch (e) {
+      debugPrint('Erro ao formatar data: $e');
+    }
+    return date;
+  }
+
+  String _formatTime(String time) {
+    // Verifica se o horário já está no formato correto
+    if (time.contains(':')) {
+      final parts = time.split(':');
+      if (parts.length == 2 && parts[1].length == 1) {
+        // Adiciona zero à esquerda para minutos com um dígito
+        return '${parts[0]}:${parts[1].padLeft(2, '0')}';
+      }
+    }
+    return time;
   }
 }
