@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/header.dart';
 import 'rooms_screen.dart';
 import 'reservations_screen.dart';
-import 'profile_screen.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,7 +13,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  // Usando constantes para simular dados do usuário (em um app real, viriam de um serviço de autenticação)
+  // Usando constantes para simular dados do usuário
   static const String _currentUserId = 'user123';
   static const String _userName = 'João Silva';
   static const String _userEmail = 'joao@exemplo.com';

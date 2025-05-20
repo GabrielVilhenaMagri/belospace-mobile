@@ -99,13 +99,13 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
 
     if (picked != null) {
       setState(() {
-        // Corrigido: Formatação adequada dos minutos
+
         _timeController.text = "${picked.hour}:${picked.minute.toString().padLeft(2, '0')}";
       });
     }
   }
 
-  // Verifica se já existe uma reserva para a mesma sala, data e horário
+
   bool _isReservationDuplicate() {
     final reservations = ReservationManager.reservations;
     for (final res in reservations) {

@@ -7,7 +7,7 @@ import 'screens/reservation_details_screen.dart';
 import 'screens/edit_reservation_screen.dart';
 import 'models/reservation.dart';
 import 'screens/home_screen.dart';
-import 'screens/profile_screen.dart'; // Corrigido o caminho de importação
+import 'screens/profile_screen.dart';
 
 void main() {
   runApp(const CoworkingApp());

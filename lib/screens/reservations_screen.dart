@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../models/reservation_manager.dart';
-import 'reservation_details_screen.dart';
 import '../components/header.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -23,7 +22,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   @override
   void initState() {
     super.initState();
-    // Corrigido: Timer agora é armazenado para cancelamento adequado
+
     _cleanupTimer = Timer.periodic(const Duration(hours: 24), (timer) {
       if (mounted) {
         ReservationManager.cleanExpiredCancellations();
@@ -37,9 +36,9 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
   @override
   void dispose() {
-    // Corrigido: Cancelamento do timer para evitar vazamento de memória
+
     _cleanupTimer?.cancel();
-    // Remove o listener para evitar callbacks em widgets desmontados
+
     ReservationManager.removeListener(_onReservationsChanged);
     super.dispose();
   }

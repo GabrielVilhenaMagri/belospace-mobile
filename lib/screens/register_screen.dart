@@ -36,7 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _isLoading = true;
       });
 
-      // Simulação de registro (em um app real, isso seria uma chamada de API)
+      // Simulação de registro
       Future.delayed(const Duration(seconds: 1), () {
         setState(() {
           _isLoading = false;

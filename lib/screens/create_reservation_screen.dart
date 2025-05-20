@@ -19,7 +19,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   bool _isLoading = false;
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
-  // Em um app real, isso viria de um serviço de autenticação
+  // Simulação de dados
   static const String _currentUserId = 'user123';
 
   @override
@@ -96,7 +96,7 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
         date: _dateController.text,
         time: _timeController.text,
         status: 'Ativa',
-        userId: _currentUserId, // Usando a constante em vez de hardcoding direto
+        userId: _currentUserId,
       );
 
       // Simulação de operação assíncrona
