@@ -13,21 +13,23 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  final String _currentUserId = 'user123'; // Substitua pelo ID real do usuário logado
-  final String _userName = 'João Silva'; // Substitua pelo nome real
-  final String _userEmail = 'joao@exemplo.com'; // Substitua pelo email real
+  // Usando constantes para simular dados do usuário (em um app real, viriam de um serviço de autenticação)
+  static const String _currentUserId = 'user123';
+  static const String _userName = 'João Silva';
+  static const String _userEmail = 'joao@exemplo.com';
 
   // Telas correspondentes a cada aba
-  final List<Widget> _screens = [];
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
-    _screens.addAll([
+    // Inicialização das telas com os dados do usuário
+    _screens = [
       const RoomsScreen(),
-      ReservationsScreen(currentUserId: 'user123'), // Use o ID real
-      const Center(child: Text('Tela Sobre')), // Substitua pela tela Sobre quando criada
-    ]);
+      ReservationsScreen(currentUserId: _currentUserId),
+      const AboutScreen(),
+    ];
   }
 
   @override
@@ -60,14 +62,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToProfile(BuildContext context) {
-    Navigator.push(
+    // Usando a rota nomeada para manter consistência na navegação
+    Navigator.pushNamed(
       context,
-      MaterialPageRoute(
-        builder: (context) => ProfileScreen(
-          userName: _userName,
-          userEmail: _userEmail,
-        ),
-      ),
+      '/profile',
+      arguments: {
+        'userName': _userName,
+        'userEmail': _userEmail,
+      },
     );
   }
 
@@ -96,6 +98,58 @@ class _HomeScreenState extends State<HomeScreen> {
           label: 'Sobre',
         ),
       ],
+    );
+  }
+}
+
+// Tela Sobre simples
+class AboutScreen extends StatelessWidget {
+  const AboutScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.business_center,
+            size: 80,
+            color: Color(0xFFB88E2F),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Coworking App',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Versão 1.0.0',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Um aplicativo para gerenciamento de reservas de salas de coworking.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 48),
+          const Text(
+            '© 2025 Coworking App',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../models/reservation_manager.dart';
-import 'edit_reservation_screen.dart'; // Verifique o caminho correto
+import 'package:intl/intl.dart';
 
 class ReservationDetailsScreen extends StatelessWidget {
   final Reservation reservation;
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
-  const ReservationDetailsScreen({
+  ReservationDetailsScreen({
     super.key,
     required this.reservation,
   });
@@ -21,26 +22,19 @@ class ReservationDetailsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildDetailItem('Sala', reservation.roomName),
-            _buildDetailItem('Data', reservation.date),
-            _buildDetailItem('Horário', reservation.time),
+            _buildDetailItem('Data', _formatDate(reservation.date)),
+            _buildDetailItem('Horário', _formatTime(reservation.time)),
             _buildDetailItem('Capacidade', '${reservation.capacity} pessoas'),
             _buildDetailItem('Status', reservation.status),
+            if (reservation.status == 'Cancelada' && reservation.canceledAt != null)
+              _buildDetailItem('Cancelada em', _dateFormat.format(reservation.canceledAt!)),
 
             const SizedBox(height: 32),
             if (reservation.status == 'Ativa') ...[
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditReservationScreen(
-                          reservation: reservation,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: () => _navigateToEdit(context),
                   child: const Text('Editar Reserva'),
                 ),
               ),
@@ -52,27 +46,7 @@ class ReservationDetailsScreen extends StatelessWidget {
                     backgroundColor: Colors.red[400],
                     minimumSize: const Size(double.infinity, 50),
                   ),
-                  onPressed: () {
-                    final updatedReservation = Reservation(
-                      id: reservation.id,
-                      roomName: reservation.roomName,
-                      capacity: reservation.capacity,
-                      date: reservation.date,
-                      time: reservation.time,
-                      status: 'Cancelada',
-                      userId: reservation.userId,
-                      canceledAt: DateTime.now(), // Novo campo
-                    );
-                    ReservationManager.updateReservation(updatedReservation);
-                    ReservationManager.cancelReservation(reservation.id); // Chama o método
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Reserva cancelada com sucesso!'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                    Navigator.pop(context); // Fecha a tela de detalhes
-                  },
+                  onPressed: () => _cancelReservation(context),
                   child: const Text(
                     'CANCELAR RESERVA',
                     style: TextStyle(color: Colors.white),
@@ -84,6 +58,34 @@ class ReservationDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _navigateToEdit(BuildContext context) {
+    Navigator.pushNamed(
+      context,
+      '/editReservation',
+      arguments: reservation,
+    ).then((result) {
+      if (result == true) {
+        // Retorna true para a tela anterior para indicar que houve alteração
+        Navigator.pop(context, true);
+      }
+    });
+  }
+
+  void _cancelReservation(BuildContext context) {
+    // Usando apenas o método do ReservationManager para evitar duplicação de lógica
+    ReservationManager.cancelReservation(reservation.id);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reserva cancelada com sucesso!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    // Retorna true para a tela anterior para indicar que houve alteração
+    Navigator.pop(context, true);
   }
 
   Widget _buildDetailItem(String label, String value) {
@@ -107,5 +109,33 @@ class ReservationDetailsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  // Métodos para formatação consistente
+  String _formatDate(String date) {
+    // Verifica se a data já está no formato correto
+    if (date.contains('/')) return date;
+
+    try {
+      final parts = date.split('-');
+      if (parts.length == 3) {
+        return '${parts[2]}/${parts[1]}/${parts[0]}';
+      }
+    } catch (e) {
+      debugPrint('Erro ao formatar data: $e');
+    }
+    return date;
+  }
+
+  String _formatTime(String time) {
+    // Verifica se o horário já está no formato correto
+    if (time.contains(':')) {
+      final parts = time.split(':');
+      if (parts.length == 2 && parts[1].length == 1) {
+        // Adiciona zero à esquerda para minutos com um dígito
+        return '${parts[0]}:${parts[1].padLeft(2, '0')}';
+      }
+    }
+    return time;
   }
 }

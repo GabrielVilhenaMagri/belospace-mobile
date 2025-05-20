@@ -1,7 +1,7 @@
-// screens/create_reservation_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/reservation.dart';
-import '../../models/reservation_manager.dart';
+import '../models/reservation.dart';
+import '../models/reservation_manager.dart';
+import 'package:intl/intl.dart';
 
 class CreateReservationScreen extends StatefulWidget {
   const CreateReservationScreen({super.key});
@@ -16,6 +16,11 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
   final _capacityController = TextEditingController(text: '4');
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
+  bool _isLoading = false;
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+
+  // Em um app real, isso viria de um serviço de autenticação
+  static const String _currentUserId = 'user123';
 
   @override
   void dispose() {
@@ -34,7 +39,9 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      _dateController.text = "${picked.day}/${picked.month}/${picked.year}";
+      setState(() {
+        _dateController.text = _dateFormat.format(picked);
+      });
     }
   }
 
@@ -44,24 +51,71 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
       initialTime: TimeOfDay.now(),
     );
     if (picked != null) {
-      _timeController.text = "${picked.hour}:${picked.minute.toString().padLeft(2, '0')}";
+      setState(() {
+        // Formatação adequada dos minutos
+        _timeController.text = "${picked.hour}:${picked.minute.toString().padLeft(2, '0')}";
+      });
     }
+  }
+
+  // Verifica se já existe uma reserva para a mesma sala, data e horário
+  bool _isReservationDuplicate() {
+    final reservations = ReservationManager.reservations;
+    for (final res in reservations) {
+      if (res.status == 'Ativa' && // Apenas reservas ativas
+          res.roomName == _roomNameController.text &&
+          res.date == _dateController.text &&
+          res.time == _timeController.text) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
+      // Verifica duplicação
+      if (_isReservationDuplicate()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Já existe uma reserva para esta sala nesta data e horário'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      setState(() {
+        _isLoading = true;
+      });
+
       final newReservation = Reservation(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          roomName: _roomNameController.text,
-          capacity: int.parse(_capacityController.text),
-          date: _dateController.text,
-          time: _timeController.text,
-          status: 'Ativa',
-          userId: 'user123',
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        roomName: _roomNameController.text,
+        capacity: int.parse(_capacityController.text),
+        date: _dateController.text,
+        time: _timeController.text,
+        status: 'Ativa',
+        userId: _currentUserId, // Usando a constante em vez de hardcoding direto
       );
 
-      ReservationManager.addReservation(newReservation);
-      Navigator.pop(context);
+      // Simulação de operação assíncrona
+      Future.delayed(const Duration(milliseconds: 300), () {
+        ReservationManager.addReservation(newReservation);
+
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reserva criada com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pop(context, true);
+      });
     }
   }
 
@@ -82,7 +136,12 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.meeting_room),
                 ),
-                validator: (value) => value!.isEmpty ? 'Campo obrigatório' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Campo obrigatório';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -94,9 +153,13 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value!.isEmpty) return 'Campo obrigatório';
+                  if (value == null || value.isEmpty) {
+                    return 'Campo obrigatório';
+                  }
                   final capacity = int.tryParse(value);
-                  if (capacity == null || capacity <= 0) return 'Número inválido';
+                  if (capacity == null || capacity <= 0) {
+                    return 'Número inválido';
+                  }
                   return null;
                 },
               ),
@@ -110,7 +173,17 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                 ),
                 readOnly: true,
                 onTap: _selectDate,
-                validator: (value) => value!.isEmpty ? 'Selecione uma data' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Selecione uma data';
+                  }
+                  // Validação do formato da data
+                  final dateRegex = RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$');
+                  if (!dateRegex.hasMatch(value)) {
+                    return 'Formato de data inválido';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -122,15 +195,27 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                 ),
                 readOnly: true,
                 onTap: _selectTime,
-                validator: (value) => value!.isEmpty ? 'Selecione um horário' : null,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Selecione um horário';
+                  }
+                  // Validação do formato da hora
+                  final timeRegex = RegExp(r'^\d{1,2}:\d{2}$');
+                  if (!timeRegex.hasMatch(value)) {
+                    return 'Formato de horário inválido';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _submit,
-                  child: const Text('CRIAR RESERVA'),
+                  onPressed: _isLoading ? null : _submit,
+                  child: _isLoading
+                      ? const CircularProgressIndicator()
+                      : const Text('CRIAR RESERVA'),
                 ),
               ),
             ],

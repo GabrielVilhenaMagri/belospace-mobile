@@ -7,7 +7,7 @@ import 'screens/reservation_details_screen.dart';
 import 'screens/edit_reservation_screen.dart';
 import 'models/reservation.dart';
 import 'screens/home_screen.dart';
-import 'package:coworking_app/screens/profile_screen.dart';
+import 'screens/profile_screen.dart'; // Corrigido o caminho de importação
 
 void main() {
   runApp(const CoworkingApp());
@@ -46,16 +46,43 @@ class CoworkingApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/rooms': (context) => const RoomsScreen(),
         '/createReservation': (context) => const CreateReservationScreen(),
-        '/editReservation': (context) => EditReservationScreen(
-          reservation: ModalRoute.of(context)!.settings.arguments as Reservation,
-        ),
-        '/reservationDetails': (context) => ReservationDetailsScreen(
-          reservation: ModalRoute.of(context)!.settings.arguments as Reservation,
-        ),
-        '/profile': (context) => ProfileScreen(
-          userName: 'ianzin',
-          userEmail: 'email@exemplo.com',
-        ),
+        '/editReservation': (context) {
+          // Tratamento seguro para argumentos
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is Reservation) {
+            return EditReservationScreen(reservation: args);
+          }
+          // Fallback para caso de erro
+          return const Scaffold(
+            body: Center(child: Text('Erro: Dados da reserva não encontrados')),
+          );
+        },
+        '/reservationDetails': (context) {
+          // Tratamento seguro para argumentos
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is Reservation) {
+            return ReservationDetailsScreen(reservation: args);
+          }
+          // Fallback para caso de erro
+          return const Scaffold(
+            body: Center(child: Text('Erro: Dados da reserva não encontrados')),
+          );
+        },
+        '/profile': (context) {
+          // Usando argumentos se disponíveis, ou valores padrão
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is Map<String, String>) {
+            return ProfileScreen(
+              userName: args['userName'] ?? 'Usuário',
+              userEmail: args['userEmail'] ?? 'email@exemplo.com',
+            );
+          }
+          // Valores padrão como fallback
+          return const ProfileScreen(
+            userName: 'Usuário',
+            userEmail: 'email@exemplo.com',
+          );
+        },
       },
     );
   }
