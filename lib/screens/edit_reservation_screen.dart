@@ -1,15 +1,11 @@
+import 'package:coworking_app/services/reservation_service.dart';
 import 'package:flutter/material.dart';
 import '../models/reservation.dart';
-import '../models/reservation_manager.dart';
 import 'package:intl/intl.dart';
 
 class EditReservationScreen extends StatefulWidget {
   final Reservation reservation;
-
-  const EditReservationScreen({
-    super.key,
-    required this.reservation,
-  });
+  const EditReservationScreen({super.key, required this.reservation});
 
   @override
   State<EditReservationScreen> createState() => _EditReservationScreenState();
@@ -17,261 +13,248 @@ class EditReservationScreen extends StatefulWidget {
 
 class _EditReservationScreenState extends State<EditReservationScreen> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _roomNameController;
+  late final TextEditingController _workspaceNameController;
   late final TextEditingController _capacityController;
   late final TextEditingController _dateController;
-  late final TextEditingController _timeController;
-  bool _isLoading = false;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  late final TextEditingController _startTimeController;
+  late final TextEditingController _endTimeController;
 
-  @override
-  void initState() {
-    super.initState();
-    // Pré-preenche os campos com os dados atuais
-    _roomNameController = TextEditingController(text: widget.reservation.roomName);
-    _capacityController = TextEditingController(text: widget.reservation.capacity.toString());
-    _dateController = TextEditingController(text: widget.reservation.date);
-    _timeController = TextEditingController(text: widget.reservation.time);
-  }
+  final ReservationService _reservationService = ReservationService();
+
+  // final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _timeFormat = DateFormat('HH:mm');
+  final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
+
+  bool _isLoading = false;
+
+
+@override
+void initState() {
+  super.initState();
+
+  _workspaceNameController = TextEditingController(
+    text: widget.reservation.workspaceName,
+  );
+  _capacityController = TextEditingController(
+    text: widget.reservation.capacity.toString(),
+  );
+  _dateController = TextEditingController(
+    text: _dateFormat.format(widget.reservation.date),
+  );
+  _startTimeController = TextEditingController(
+    text: widget.reservation.startTime,
+  );
+  _endTimeController = TextEditingController(
+    text: widget.reservation.endTime,
+  );
+}
 
   @override
   void dispose() {
-    _roomNameController.dispose();
+    _workspaceNameController.dispose();
     _capacityController.dispose();
     _dateController.dispose();
-    _timeController.dispose();
+    _startTimeController.dispose();
+    _endTimeController.dispose();
     super.dispose();
   }
 
   Future<void> _selectDate() async {
-    // Tenta converter a data atual para DateTime
-    DateTime initialDate;
-    try {
-      final parts = widget.reservation.date.split('/');
-      if (parts.length == 3) {
-        initialDate = DateTime(
-          int.parse(parts[2]), // ano
-          int.parse(parts[1]), // mês
-          int.parse(parts[0]), // dia
-        );
-      } else {
-        initialDate = DateTime.now();
-      }
-    } catch (e) {
-      initialDate = DateTime.now();
-    }
-
-    final DateTime? picked = await showDatePicker(
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: initialDate.isAfter(DateTime.now()) ? initialDate : DateTime.now(),
+      initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-
-    if (picked != null) {
+    if (pickedDate != null) {
       setState(() {
-        _dateController.text = _dateFormat.format(picked);
+        _dateController.text = _dateFormat.format(pickedDate);
       });
     }
   }
 
-  Future<void> _selectTime() async {
-    // Tenta converter o horário atual para TimeOfDay
-    TimeOfDay initialTime;
-    try {
-      final parts = widget.reservation.time.split(':');
-      if (parts.length == 2) {
-        initialTime = TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
-        );
-      } else {
-        initialTime = TimeOfDay.now();
-      }
-    } catch (e) {
-      initialTime = TimeOfDay.now();
-    }
-
+  Future<void> _selectTime(TextEditingController controller) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: initialTime,
+      initialTime: TimeOfDay.now(),
     );
-
     if (picked != null) {
-      setState(() {
-
-        _timeController.text = "${picked.hour}:${picked.minute.toString().padLeft(2, '0')}";
-      });
+      controller.text =
+          "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}";
     }
   }
 
+  // bool _isReservationDuplicate() {
+  //   final reservations = ReservationManager.reservations;
+  //   for (final res in reservations) {
+  //     if (res.id != widget.reservation.id && // Não é a mesma reserva
+  //         res.status == 'Ativa' && // Apenas reservas ativas
+  //         res.roomName == _roomNameController.text &&
+  //         res.date == _dateController.text &&
+  //         res.time == _timeController.text) {
+  //       return true;
+  //     }
+  //   }
+  //   return false;
+  // }
 
-  bool _isReservationDuplicate() {
-    final reservations = ReservationManager.reservations;
-    for (final res in reservations) {
-      if (res.id != widget.reservation.id && // Não é a mesma reserva
-          res.status == 'Ativa' && // Apenas reservas ativas
-          res.roomName == _roomNameController.text &&
-          res.date == _dateController.text &&
-          res.time == _timeController.text) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  void _submit() {
+  void _submit() async {
     if (_formKey.currentState!.validate()) {
-      // Verifica duplicação
-      if (_isReservationDuplicate()) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Já existe uma reserva para esta sala nesta data e horário'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
       setState(() {
         _isLoading = true;
       });
 
       final updatedReservation = Reservation(
-        id: widget.reservation.id,
-        roomName: _roomNameController.text,
+        workspaceName: _workspaceNameController.text,
         capacity: int.parse(_capacityController.text),
-        date: _dateController.text,
-        time: _timeController.text,
+        date: _dateFormat.parse(_dateController.text),
+        startTime: _startTimeController.text,
+        endTime: _endTimeController.text,
         status: widget.reservation.status,
         userId: widget.reservation.userId,
-        canceledAt: widget.reservation.canceledAt,
       );
 
-      // Simulação de operação assíncrona
-      Future.delayed(const Duration(milliseconds: 300), () {
-        ReservationManager.updateReservation(updatedReservation);
+      final successUpdate = await _reservationService.updateReservation(
+        updatedReservation,
+      );
 
-        setState(() {
-          _isLoading = false;
-        });
-
+      if (!mounted) return;
+      if (successUpdate) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Reserva atualizada com sucesso!'),
             backgroundColor: Colors.green,
           ),
         );
-
-        // Retorna true para indicar que houve alteração
         Navigator.pop(context, true);
-      });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Falha ao atualizar reserva'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Editar Reserva')),
+      appBar: AppBar(title: const Text('Nova Reserva')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
-                controller: _roomNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome da Sala',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.meeting_room),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Campo obrigatório';
-                  }
-                  return null;
-                },
+              _buildTextField(
+                controller: _workspaceNameController,
+                label: 'Nome da sala',
+                icon: Icons.meeting_room,
               ),
               const SizedBox(height: 16),
-              TextFormField(
+              _buildTextField(
                 controller: _capacityController,
-                decoration: const InputDecoration(
-                  labelText: 'Capacidade',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.people),
-                ),
+                label: 'Capacidade',
+                icon: Icons.people,
                 keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Campo obrigatório';
-                  }
-                  final capacity = int.tryParse(value);
-                  if (capacity == null || capacity <= 0) {
-                    return 'Número inválido';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _dateController,
-                decoration: const InputDecoration(
-                  labelText: 'Data (DD/MM/AAAA)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.calendar_today),
-                ),
-                readOnly: true,
-                onTap: _selectDate,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Selecione uma data';
-                  }
-                  // Validação do formato da data
-                  final dateRegex = RegExp(r'^\d{1,2}/\d{1,2}/\d{4}$');
-                  if (!dateRegex.hasMatch(value)) {
-                    return 'Formato de data inválido';
-                  }
-                  return null;
-                },
-              ),
+              _buildDateField(),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _timeController,
-                decoration: const InputDecoration(
-                  labelText: 'Horário (HH:MM)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.access_time),
-                ),
-                readOnly: true,
-                onTap: _selectTime,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Selecione um horário';
-                  }
-                  // Validação do formato da hora
-                  final timeRegex = RegExp(r'^\d{1,2}:\d{2}$');
-                  if (!timeRegex.hasMatch(value)) {
-                    return 'Formato de horário inválido';
-                  }
-                  return null;
-                },
-              ),
+              _buildTimeFormat('Horario de início', _startTimeController),
+              const SizedBox(height: 16),
+              _buildTimeFormat('Horario de término', _endTimeController),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('ATUALIZAR RESERVA'),
+                  child:
+                      _isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('CRIAR RESERVA'),
                 ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: Icon(icon),
+      ),
+      keyboardType: keyboardType,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Campo obrigatório';
+        }
+        if (label == 'Capacidade') {
+          final parsed = int.tryParse(value);
+          if (parsed == null || parsed <= 0) {
+            return 'Numero inválido';
+          }
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildDateField() {
+    return TextFormField(
+      controller: _dateController,
+      decoration: const InputDecoration(
+        labelText: 'Data (DD/MM/AAAA)',
+        border: OutlineInputBorder(),
+        prefixIcon: Icon(Icons.calendar_today),
+      ),
+      readOnly: true,
+      onTap: _selectDate,
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Selecione uma data';
+        }
+        final dateRegex = RegExp(r'^\d{1,2}-\d{1,2}-\d{4}$');
+        if (!dateRegex.hasMatch(value)) {
+          return 'Formato de data inválido';
+        }
+        return null;
+      },
+    );
+  }
+
+  Widget _buildTimeFormat(String label, TextEditingController controller) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        prefixIcon: const Icon(Icons.access_time),
+      ),
+      readOnly: true,
+      onTap: () => _selectTime(controller),
+      validator: (value) {
+        if (value == null || value.isEmpty) return 'Selecione um horario';
+        final timeRegex = RegExp(r'^\d{1,2}:\d{2}$');
+        if (!timeRegex.hasMatch(value)) {
+          return 'Formato de horário inválido';
+        }
+        return null;
+      },
     );
   }
 }

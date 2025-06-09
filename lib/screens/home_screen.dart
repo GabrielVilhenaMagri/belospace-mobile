@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Inicialização das telas com os dados do usuário
     _screens = [
       const RoomsScreen(),
-      ReservationsScreen(currentUserId: _currentUserId),
+      // ReservationsScreen(currentUserId: _currentUserId),
       const AboutScreen(),
     ];
   }

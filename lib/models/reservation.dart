@@ -1,41 +1,44 @@
 // models/reservation.dart
+
+import 'package:intl/intl.dart';
+
 class Reservation {
-  final String id;
-  final String roomName;
+  final String workspaceName;
   final int capacity;
-  final String date;
-  final String time;
+  final DateTime date;
+  final String startTime;
+  final String endTime;
   final String status;
-  final String userId;
+  final int userId;
   final DateTime? canceledAt; //
 
   Reservation({
-    required this.id,
-    required this.roomName,
+    required this.workspaceName,
     required this.capacity,
     required this.date,
-    required this.time,
+    required this.startTime,
+    required this.endTime,
     required this.status,
     required this.userId,
     this.canceledAt, // Opcional
   });
 
   Reservation copyWith({
-    String? id,
-    String? roomName,
+    String? workspaceName,
     int? capacity,
-    String? date,
-    String? time,
+    DateTime? date,
+    String? startTime,
+    String? endTime,
     String? status,
-    String? userId,
+    int? userId,
     DateTime? canceledAt,
   }) {
     return Reservation(
-      id: id ?? this.id,
-      roomName: roomName ?? this.roomName,
+      workspaceName: workspaceName ?? this.workspaceName,
       capacity: capacity ?? this.capacity,
       date: date ?? this.date,
-      time: time ?? this.time,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
       status: status ?? this.status,
       userId: userId ?? this.userId,
       canceledAt: canceledAt ?? this.canceledAt,
@@ -45,5 +48,33 @@ class Reservation {
   bool get shouldBeRemoved {
     if (status != 'Cancelada' || canceledAt == null) return false;
     return DateTime.now().difference(canceledAt!).inDays > 10;
+  }
+
+  factory Reservation.fromJson(Map<String,dynamic> json){
+    return Reservation(
+      workspaceName: json['workspaceName'],
+      capacity: json['capacity'],
+      date: DateFormat('dd-MM-yyyy').parse(json['date']),
+      startTime: json['startTime'],
+      endTime: json['endTime'],
+      status: json['status'],
+      userId: json['userId'],
+      canceledAt: json['canceledAt'] != null && json['canceledAt'] != ''
+        ? DateTime.parse(json['canceledAt'])
+        : null,
+  );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'workspaceName': workspaceName,
+      'capacity': capacity,
+      'date': DateFormat('dd-MM-yyyy').format(date),
+      'userId': userId,
+      'status': status,
+      'startTime': startTime,
+      'endTime': endTime,
+      'canceledAt': canceledAt?.toIso8601String(),
+    };
   }
 }

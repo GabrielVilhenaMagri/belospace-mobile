@@ -68,21 +68,7 @@ class CoworkingApp extends StatelessWidget {
             body: Center(child: Text('Erro: Dados da reserva não encontrados')),
           );
         },
-        '/profile': (context) {
-          // Usando argumentos se disponíveis, ou valores padrão
-          final args = ModalRoute.of(context)?.settings.arguments;
-          if (args is Map<String, String>) {
-            return ProfileScreen(
-              userName: args['userName'] ?? 'Usuário',
-              userEmail: args['userEmail'] ?? 'email@exemplo.com',
-            );
-          }
-          // Valores padrão como fallback
-          return const ProfileScreen(
-            userName: 'Usuário',
-            userEmail: 'email@exemplo.com',
-          );
-        },
+        '/profile': (context) => const ProfileScreen()
       },
     );
   }

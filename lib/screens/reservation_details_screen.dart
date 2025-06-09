@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/reservation.dart';
-import '../models/reservation_manager.dart';
+import 'package:coworking_app/services/reservation_service.dart';
 import 'package:intl/intl.dart';
 
 class ReservationDetailsScreen extends StatelessWidget {
+  
   final Reservation reservation;
-  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
 
-  ReservationDetailsScreen({
-    super.key,
-    required this.reservation,
-  });
+  ReservationDetailsScreen({super.key, required this.reservation});
+  final ReservationService _reservationService = ReservationService();
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat _timeFormat = DateFormat('HH:mm');
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +21,24 @@ class ReservationDetailsScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailItem('Sala', reservation.roomName),
-            _buildDetailItem('Data', _formatDate(reservation.date)),
-            _buildDetailItem('Horário', _formatTime(reservation.time)),
+            _buildDetailItem('Sala', reservation.workspaceName),
+            _buildDetailItem('Data', _dateFormat.format(reservation.date)),
+            _buildDetailItem(
+              'Horário inicial',
+              reservation.startTime,
+            ),
+            _buildDetailItem(
+              'Horário final',
+              reservation.endTime,
+            ),
             _buildDetailItem('Capacidade', '${reservation.capacity} pessoas'),
             _buildDetailItem('Status', reservation.status),
-            if (reservation.status == 'Cancelada' && reservation.canceledAt != null)
-              _buildDetailItem('Cancelada em', _dateFormat.format(reservation.canceledAt!)),
+            if (reservation.status == 'Cancelada' &&
+                reservation.canceledAt != null)
+              _buildDetailItem(
+                'Cancelada em',
+                _dateFormat.format(reservation.canceledAt!),
+              ),
 
             const SizedBox(height: 32),
             if (reservation.status == 'Ativa') ...[
@@ -43,7 +54,7 @@ class ReservationDetailsScreen extends StatelessWidget {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[400],
+                    backgroundColor: Colors.red,
                     minimumSize: const Size(double.infinity, 50),
                   ),
                   onPressed: () => _cancelReservation(context),
@@ -60,33 +71,58 @@ class ReservationDetailsScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToEdit(BuildContext context) {
-    Navigator.pushNamed(
+  void _navigateToEdit(BuildContext context) async {
+    final result = await Navigator.pushNamed(
       context,
       '/editReservation',
       arguments: reservation,
-    ).then((result) {
-      if (result == true) {
-        // Retorna true para a tela anterior para indicar que houve alteração
-        Navigator.pop(context, true);
-      }
-    });
-  }
-
-  void _cancelReservation(BuildContext context) {
-    // Usando apenas o método do ReservationManager para evitar duplicação de lógica
-    ReservationManager.cancelReservation(reservation.id);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Reserva cancelada com sucesso!'),
-        duration: Duration(seconds: 2),
-      ),
     );
 
-    // Retorna true para a tela anterior para indicar que houve alteração
-    Navigator.pop(context, true);
+    if (context.mounted && result == true) {
+      Navigator.pop(context, true);
+    }
   }
+
+void _cancelReservation(BuildContext context) async {
+  final reservationId = await _reservationService.getReservationId();
+
+  if (reservationId != null) {
+    final success = await _reservationService.cancelReservation(reservationId);
+
+    if (success) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Reserva cancelada com sucesso!'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Erro ao cancelar reserva'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  } else {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('ID da reserva não encontrado.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+}
+
+  // Retorna true para a tela anterior para indicar que houve alteração
 
   Widget _buildDetailItem(String label, String value) {
     return Padding(
@@ -96,46 +132,12 @@ class ReservationDetailsScreen extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 18),
-          ),
+          Text(value, style: const TextStyle(fontSize: 18)),
           const Divider(),
         ],
       ),
     );
-  }
-
-  // Métodos para formatação consistente
-  String _formatDate(String date) {
-    // Verifica se a data já está no formato correto
-    if (date.contains('/')) return date;
-
-    try {
-      final parts = date.split('-');
-      if (parts.length == 3) {
-        return '${parts[2]}/${parts[1]}/${parts[0]}';
-      }
-    } catch (e) {
-      debugPrint('Erro ao formatar data: $e');
-    }
-    return date;
-  }
-
-  String _formatTime(String time) {
-    // Verifica se o horário já está no formato correto
-    if (time.contains(':')) {
-      final parts = time.split(':');
-      if (parts.length == 2 && parts[1].length == 1) {
-        // Adiciona zero à esquerda para minutos com um dígito
-        return '${parts[0]}:${parts[1].padLeft(2, '0')}';
-      }
-    }
-    return time;
   }
 }
