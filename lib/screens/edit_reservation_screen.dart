@@ -22,7 +22,6 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
   final ReservationService _reservationService = ReservationService();
 
   // final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
-  final DateFormat _timeFormat = DateFormat('HH:mm');
   final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
 
   bool _isLoading = false;
@@ -40,12 +39,6 @@ void initState() {
   );
   _dateController = TextEditingController(
     text: _dateFormat.format(widget.reservation.date),
-  );
-  _startTimeController = TextEditingController(
-    text: widget.reservation.startTime,
-  );
-  _endTimeController = TextEditingController(
-    text: widget.reservation.endTime,
   );
 }
 
@@ -108,8 +101,6 @@ void initState() {
         workspaceName: _workspaceNameController.text,
         capacity: int.parse(_capacityController.text),
         date: _dateFormat.parse(_dateController.text),
-        startTime: _startTimeController.text,
-        endTime: _endTimeController.text,
         status: widget.reservation.status,
         userId: widget.reservation.userId,
       );
@@ -152,6 +143,7 @@ void initState() {
                 controller: _workspaceNameController,
                 label: 'Nome da sala',
                 icon: Icons.meeting_room,
+                
               ),
               const SizedBox(height: 16),
               _buildTextField(
@@ -159,13 +151,10 @@ void initState() {
                 label: 'Capacidade',
                 icon: Icons.people,
                 keyboardType: TextInputType.number,
+                readOnly: true
               ),
               const SizedBox(height: 16),
-              _buildDateField(),
-              const SizedBox(height: 16),
-              _buildTimeFormat('Horario de início', _startTimeController),
-              const SizedBox(height: 16),
-              _buildTimeFormat('Horario de término', _endTimeController),
+              _buildDateField(),            
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -186,33 +175,35 @@ void initState() {
   }
 
   Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        prefixIcon: Icon(icon),
-      ),
-      keyboardType: keyboardType,
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Campo obrigatório';
+  required TextEditingController controller,
+  required String label,
+  required IconData icon,
+  TextInputType keyboardType = TextInputType.text,
+  bool readOnly = false, // Novo parâmetro para controlar se é editável
+}) {
+  return TextFormField(
+    controller: controller,
+    decoration: InputDecoration(
+      labelText: label,
+      border: const OutlineInputBorder(),
+      prefixIcon: Icon(icon),
+    ),
+    keyboardType: keyboardType,
+    readOnly: readOnly,  // Aqui aplicamos o readOnly
+    validator: (value) {
+      if (value == null || value.isEmpty) {
+        return 'Campo obrigatório';
+      }
+      if (label == 'Capacidade') {
+        final parsed = int.tryParse(value);
+        if (parsed == null || parsed <= 0) {
+          return 'Numero inválido';
         }
-        if (label == 'Capacidade') {
-          final parsed = int.tryParse(value);
-          if (parsed == null || parsed <= 0) {
-            return 'Numero inválido';
-          }
-        }
-        return null;
-      },
-    );
-  }
+      }
+      return null;
+    },
+  );
+}
 
   Widget _buildDateField() {
     return TextFormField(

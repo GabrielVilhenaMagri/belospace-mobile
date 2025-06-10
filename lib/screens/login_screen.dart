@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:coworking_app/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/auth_service.dart';
@@ -39,11 +40,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
 
     if (result != false) {      
-      final jsonStr = await _storage.read(key: 'user_data');
-      print('JSON lido do storage: $jsonStr');
       // Checagem de mounted novamente, antes de navegar
       if (!mounted) return;
-      
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,64 +59,165 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    
+    final ButtonStyle? buttonStyle = theme.elevatedButtonTheme.style;
+    final TextStyle? buttonTextStyle = buttonStyle?.textStyle?.resolve({});
+
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  prefixIcon: Icon(Icons.email),
+      
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400), 
+              child: Card(
+                elevation: 4,
+                color: AppColors.white, 
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16.0),
                 ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira seu email';
-                  }
-                  if (!_isValidEmail(value)) {
-                    return 'Por favor, insira um email válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Senha',
-                  prefixIcon: Icon(Icons.lock),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        
+                        Image.asset(
+                          'assets/images/logo_png_belospace.png',
+                          height: 60, 
+                        ),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Bem-vindo(a)!',
+                          style: textTheme.headlineSmall?.copyWith(color: AppColors.textDark),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Entre com seu usuário e senha para acessar o sistema',
+                          style: textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 32),
+                        
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Usuário', 
+                            
+                            
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor, insira seu email';
+                            }
+                            if (!_isValidEmail(value)) {
+                              return 'Por favor, insira um email válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: const InputDecoration(
+                            labelText: 'Senha',
+                            
+                            
+                          ),
+                          obscureText: true,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Por favor, insira sua senha';
+                            }
+                            
+                            
+                            
+                            
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              
+                            },
+                            child: Text(
+                              'Esqueceu sua senha?',
+                              style: textTheme.bodySmall?.copyWith(color: AppColors.textGrey),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 24, 
+                                    width: 24,
+                                    child: CircularProgressIndicator(strokeWidth: 3, color: AppColors.white),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      
+                                      Text('Login', style: buttonTextStyle),
+                                      const SizedBox(width: 8),
+                                      
+                                      Icon(Icons.arrow_forward, size: 20, color: buttonTextStyle?.color),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Ainda não é cliente? ',
+                              style: textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
+                            ),
+                            TextButton(
+                              style: theme.textButtonTheme.style?.copyWith(
+                                padding: MaterialStateProperty.all(EdgeInsets.zero), 
+                                minimumSize: MaterialStateProperty.all(Size.zero), 
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap, 
+                              ),
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/register');
+                              },
+                              child: Text(
+                                'Cadastre-se aqui',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.primaryOrange,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Digite sua senha';
-                  }
-                  return null;
-                },
               ),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
-                  child:
-                      _isLoading ? CircularProgressIndicator() : Text('Entrar'),
-                ),
-              ),
-              SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/register');
-                },
-                child: Text("Ainda nao cadastrado? Crie sua conta!"),
-              ),
-            ],
+            ),
           ),
         ),
       ),

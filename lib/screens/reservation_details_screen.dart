@@ -23,14 +23,14 @@ class ReservationDetailsScreen extends StatelessWidget {
           children: [
             _buildDetailItem('Sala', reservation.workspaceName),
             _buildDetailItem('Data', _dateFormat.format(reservation.date)),
-            _buildDetailItem(
-              'Horário inicial',
-              reservation.startTime,
-            ),
-            _buildDetailItem(
-              'Horário final',
-              reservation.endTime,
-            ),
+            // _buildDetailItem(
+            //   'Horário inicial',
+            //   reservation.startTime,
+            // ),
+            // _buildDetailItem(
+            //   'Horário final',
+            //   reservation.endTime,
+            // ),
             _buildDetailItem('Capacidade', '${reservation.capacity} pessoas'),
             _buildDetailItem('Status', reservation.status),
             if (reservation.status == 'Cancelada' &&

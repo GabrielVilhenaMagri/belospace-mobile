@@ -47,29 +47,26 @@ class CoworkingApp extends StatelessWidget {
         '/rooms': (context) => const RoomsScreen(),
         '/createReservation': (context) => const CreateReservationScreen(),
         '/editReservation': (context) {
-          // Tratamento seguro para argumentos
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is Reservation) {
             return EditReservationScreen(reservation: args);
           }
-          // Fallback para caso de erro
           return const Scaffold(
             body: Center(child: Text('Erro: Dados da reserva não encontrados')),
           );
         },
         '/reservationDetails': (context) {
-          // Tratamento seguro para argumentos
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is Reservation) {
             return ReservationDetailsScreen(reservation: args);
           }
-          // Fallback para caso de erro
           return const Scaffold(
             body: Center(child: Text('Erro: Dados da reserva não encontrados')),
           );
         },
-        '/profile': (context) => const ProfileScreen()
+        '/profile': (context) => const ProfileScreen(), // << vírgula aqui é ESSENCIAL
       },
+
     );
   }
 }

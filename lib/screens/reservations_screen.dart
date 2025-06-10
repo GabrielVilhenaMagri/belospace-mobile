@@ -1,195 +1,225 @@
-// import 'package:flutter/material.dart';
-// import '../models/reservation.dart';
-// import '../models/reservation_manager.dart';
-// import '../components/header.dart';
-// import 'dart:async';
-// import 'package:intl/intl.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:coworking_app/services/reservation_service.dart';
+import 'package:coworking_app/models/reservation.dart';
+import 'package:coworking_app/utils/app_colors.dart';
 
-// class ReservationsScreen extends StatefulWidget {
-//   final String currentUserId;
+class ReservationScreen extends StatefulWidget {
+  const ReservationScreen({super.key});
 
-//   const ReservationsScreen({super.key, required this.currentUserId});
+  @override
+  State<ReservationScreen> createState() => _ReservationScreenState();
+}
 
-//   @override
-//   State<ReservationsScreen> createState() => _ReservationsScreenState();
-// }
+class _ReservationScreenState extends State<ReservationScreen> {
+  late Future<List<Map<String, dynamic>>> _reservationsFuture;
+  static final _reservationService = ReservationService();
+  final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  String _filterStatus = 'Ativa';
 
-// class _ReservationsScreenState extends State<ReservationsScreen> {
-//   String _filterStatus = 'Ativa';
-//   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  @override
+  void initState() {
+    super.initState();
+    _loadReservations();
+  }
 
-//   @override
-//   void initState() {
-//     super.initState();
+  Future<void> _loadReservations() async {
+    final userId = await _reservationService.getUserId();
+    if (mounted) {
+      setState(() {
+        _reservationsFuture = _reservationService.getReservationByUserId(userId!);
+      });
+    }
+  }
 
-//     _cleanupTimer = Timer.periodic(const Duration(hours: 24), (timer) {
-//       if (mounted) {
-//         ReservationManager.cleanExpiredCancellations();
-//         setState(() {}); // Força reconstrução apenas quando necessário
-//       }
-//     });
+  void _navigateToDetails(Reservation reservation) {
+    Navigator.pushNamed(context, '/reservationDetails', arguments: reservation)
+        .then((result) {
+      if (result == true) {
+        _loadReservations();
+      }
+    });
+  }
 
-//     // Registra listener para atualizações de reservas
-//     ReservationManager.addListener(_onReservationsChanged);
-//   }
+  void _createNewReservation() {
+    Navigator.pushNamed(context, '/createReservation').then((result) {
+      if (result == true) {
+        _loadReservations();
+      }
+    });
+  }
 
-//   @override
-//   void dispose() {
-//     _cleanupTimer?.cancel();
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
-//     ReservationManager.removeListener(_onReservationsChanged);
-//     super.dispose();
-//   }
+    return Scaffold(
+      appBar: AppBar(title: const Text("Minhas Reservas")),
+      body: Column(
+        children: [
+          _buildFilterChips(theme),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _reservationsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text("Erro: ${snapshot.error}"));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'Nenhuma reserva encontrada.',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                  );
+                }
 
-//   // Método para atualizar o estado quando as reservas mudarem
-//   void _onReservationsChanged() {
-//     if (mounted) {
-//       setState(() {
-//         // Estado atualizado apenas quando o widget está montado
-//       });
-//     }
-//   }
+                final reservations = snapshot.data!
+                    .where((res) => _filterStatus == 'Todas' || res['status'] == _filterStatus)
+                    .toList();
 
-//   @override
-//   Widget build(BuildContext context) {
-//     // Memoização da lista filtrada para evitar recálculos desnecessários
-//     final userReservations = _getUserReservations();
+                if (reservations.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text(
+                        'Nenhuma reserva com status "$_filterStatus".',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textGrey),
+                      ),
+                    ),
+                  );
+                }
 
-//     return Scaffold(
-//       appBar:
-//           ModalRoute.of(context)?.settings.name == '/reservations'
-//               ? const CustomHeader(title: "Minhas Reservas")
-//               : null, // Só mostra header se acessada diretamente
-//       body: Column(
-//         children: [
-//           _buildFilterChips(),
-//           Expanded(child: _buildReservationsList(userReservations)),
-//         ],
-//       ),
-//     );
-//   }
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  itemCount: reservations.length,
+                  itemBuilder: (context, index) {
+                    final res = reservations[index];
+                    final reservation = Reservation.fromJson(res);
+                    final isCancelled = reservation.status == 'Cancelada';
 
-//   // Método extraído para melhorar a legibilidade e manutenção
-//   List<Reservation> _getUserReservations() {
-//     return ReservationManager.reservations
-//         .where((res) => res.userId == widget.currentUserId)
-//         .where((res) => _filterStatus == 'Todas' || res.status == _filterStatus)
-//         .toList();
-//   }
+                    return Card(
+                      color: isCancelled ? AppColors.darkBlue.withOpacity(0.7) : theme.cardTheme.color,
+                      margin: const EdgeInsets.only(bottom: 16.0),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                        title: Text(
+                          reservation.workspaceName,
+                          style: isCancelled ? theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.white,
+                            decoration: TextDecoration.lineThrough,
+                            decorationColor: AppColors.textGrey,
+                          ) : theme.textTheme.titleMedium?.copyWith(
+                            color: AppColors.textDark,
+                            decoration: null,
+                            decorationColor: AppColors.textDark,
+                          )
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_formatDate(reservation.date.toString())}',
+                              style: theme.textTheme.bodyMedium?.copyWith(color: isCancelled ? AppColors.white : AppColors.textDark),
+                            ),
+                            if (isCancelled && reservation.canceledAt != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  'Cancelada em: ${_dateFormat.format(reservation.canceledAt!)}',
+                                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.cancelRed.withOpacity(0.8)),
+                                ),
+                              ),
+                          ],
+                        ),
+                        trailing: _buildStatusChip(theme, reservation.status),
+                        onTap: () => _navigateToDetails(reservation),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _createNewReservation,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
 
-//   Widget _buildFilterChips() {
-//     return Padding(
-//       padding: const EdgeInsets.all(8.0),
-//       child: Row(
-//         children: [
-//           const Text('Filtrar: ', style: TextStyle(fontSize: 16)),
-//           Wrap(
-//             spacing: 8,
-//             children:
-//                 ['Todas', 'Ativa', 'Cancelada'].map((status) {
-//                   return FilterChip(
-//                     label: Text(status),
-//                     selected: _filterStatus == status,
-//                     onSelected: (selected) {
-//                       setState(() {
-//                         _filterStatus = selected ? status : 'Todas';
-//                       });
-//                     },
-//                     selectedColor: Colors.amber[100],
-//                   );
-//                 }).toList(),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
+  Widget _buildFilterChips(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Wrap(
+        spacing: 8.0,
+        runSpacing: 4.0,
+        children: ["Todas", "Ativa", "Cancelada"].map((status) {
+          final bool isSelected = _filterStatus == status;
+          return FilterChip(
+            label: Text(status),
+            selected: isSelected,
+            onSelected: (selected) {
+              setState(() {
+                _filterStatus = selected ? status : "Todas";
+              });
+            },
+            labelStyle: theme.textTheme.bodyMedium?.copyWith(
+              color: isSelected ? AppColors.white : AppColors.textDark,
+            ),
+            backgroundColor: AppColors.white,
+            selectedColor: theme.colorScheme.primary,
+            checkmarkColor: AppColors.white,
+            shape: StadiumBorder(
+              side: BorderSide(color: isSelected ? theme.colorScheme.primary : AppColors.borderGrey),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
-//   Widget _buildReservationsList(List<Reservation> reservations) {
-//     if (reservations.isEmpty) {
-//       return const Center(
-//         child: Text(
-//           'Nenhuma reserva encontrada',
-//           style: TextStyle(fontSize: 18),
-//         ),
-//       );
-//     }
+  Widget _buildStatusChip(ThemeData theme, String status) {
+    Color chipColor;
+    Color textColor;
 
-//     return ListView.builder(
-//       itemCount: reservations.length,
-//       itemBuilder: (context, index) {
-//         final reservation = reservations[index];
-//         return Card(
-//           color: reservation.status == 'Cancelada' ? Colors.grey[200] : null,
-//           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-//           child: ListTile(
-//             title: Text(
-//               reservation.roomName,
-//               style: TextStyle(
-//                 decoration:
-//                     reservation.status == 'Cancelada'
-//                         ? TextDecoration.lineThrough
-//                         : null,
-//               ),
-//             ),
-//             subtitle: Column(
-//               crossAxisAlignment: CrossAxisAlignment.start,
-//               children: [
-//                 // Formatação consistente de data
-//                 Text(
-//                   '${_formatDate(reservation.date)} às ${_formatTime(reservation.time)}',
-//                 ),
-//                 if (reservation.status == 'Cancelada' &&
-//                     reservation.canceledAt != null)
-//                   Text(
-//                     'Cancelada em ${_dateFormat.format(reservation.canceledAt!)}',
-//                     style: TextStyle(color: Colors.red[400], fontSize: 12),
-//                   ),
-//               ],
-//             ),
-//             trailing: Chip(
-//               label: Text(reservation.status),
-//               backgroundColor:
-//                   reservation.status == 'Ativa'
-//                       ? Colors.green[100]
-//                       : Colors.red[100],
-//             ),
-//             onTap: () => _navigateToDetails(reservation),
-//           ),
-//         );
-//       },
-//     );
-//   }
+    switch (status) {
+      case 'Ativa':
+        chipColor = Colors.green.shade100;
+        textColor = Colors.green.shade800;
+        break;
+      case 'Cancelada':
+        chipColor = Colors.red.shade100;
+        textColor = Colors.red.shade800;
+        break;
+      default:
+        chipColor = Colors.grey.shade300;
+        textColor = Colors.grey.shade800;
+    }
 
-//   // Método para navegação consistente
-//   void _navigateToDetails(Reservation reservation) {
-//     Navigator.pushNamed(context, '/reservationDetails', arguments: reservation);
-//   }
+    return Chip(
+      label: Text(status),
+      labelStyle: theme.textTheme.bodySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold),
+      backgroundColor: chipColor,
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+      visualDensity: VisualDensity.compact,
+    );
+  }
 
-//   // Métodos para formatação consistente
-//   String _formatDate(String date) {
-//     // Verifica se a data já está no formato correto
-//     if (date.contains('/')) return date;
+  String _formatDate(String date) {
+    try {
+      return _dateFormat.format(DateTime.parse(date));
+    } catch (e) {
+      return date;
+    }
+  }
 
-//     try {
-//       final parts = date.split('-');
-//       if (parts.length == 3) {
-//         return '${parts[2]}/${parts[1]}/${parts[0]}';
-//       }
-//     } catch (e) {
-//       debugPrint('Erro ao formatar data: $e');
-//     }
-//     return date;
-//   }
-
-//   String _formatTime(String time) {
-//     // Verifica se o horário já está no formato correto
-//     if (time.contains(':')) {
-//       final parts = time.split(':');
-//       if (parts.length == 2 && parts[1].length == 1) {
-//         // Adiciona zero à esquerda para minutos com um dígito
-//         return '${parts[0]}:${parts[1].padLeft(2, '0')}';
-//       }
-//     }
-//     return time;
-//   }
-// }
+  String _formatTime(String time) {
+    return time;
+  }
+}
