@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:coworking_app/utils/app_colors.dart';
 
 class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -19,70 +20,58 @@ class CustomHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final appBarTheme = theme.appBarTheme;
+
     return AppBar(
+      backgroundColor: appBarTheme.backgroundColor,
+      foregroundColor: appBarTheme.foregroundColor,
+      elevation: appBarTheme.elevation,
+      iconTheme: appBarTheme.iconTheme,
       leading: showBackButton
           ? IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.pop(context),
-      )
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context),
+            )
           : null,
-      title: SizedBox(
-        width: 200,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              'assets/images/logo.png',
-              height: 24,
-              errorBuilder: (_, __, ___) => const Icon(Icons.error),
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
+      title: Text(
+        title,
+        style: appBarTheme.titleTextStyle,
+        overflow: TextOverflow.ellipsis,
       ),
-      backgroundColor: const Color(0xFFB88E2F),
+      centerTitle: false,
       actions: [
         ...?actions,
         IconButton(
-          icon: const Icon(Icons.notifications_none, color: Colors.white),
+          icon: const Icon(Icons.notifications_none),
+          tooltip: 'Notificações',
           onPressed: () {
-            //
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Funcionalidade de notificações não implementada.')),
+            );
           },
         ),
-        const SizedBox(width: 8),
-        _buildProfileAvatar(context),
-        const SizedBox(width: 10),
+        Padding(
+          padding: const EdgeInsets.only(right: 12.0, left: 4.0),
+          child: GestureDetector(
+            onTap: onProfileTap ??
+                () {
+                  Navigator.pushNamed(context, '/profile');
+                },
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.primaryOrange,
+              child: const Icon(
+                Icons.person_outline,
+                color: AppColors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
-
-  Widget _buildProfileAvatar(BuildContext context) {
-    return GestureDetector(
-      onTap: onProfileTap ?? () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Navegando para o perfil')),
-        );
-      },
-      child: const CircleAvatar(
-        radius: 18,
-        backgroundColor: Colors.white,
-        child: Icon(
-          Icons.person,
-          color: Color(0xFFB88E2F),
-          size: 20,
-        ),
-      ),
-    );
-  }
 }
+
+

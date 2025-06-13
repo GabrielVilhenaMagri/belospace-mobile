@@ -1,3 +1,5 @@
+import 'package:coworking_app/services/reservation_service.dart';
+import 'package:coworking_app/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../components/header.dart';
 import 'rooms_screen.dart';
@@ -14,9 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   // Usando constantes para simular dados do usuário
-  static const String _currentUserId = 'user123';
-  static const String _userName = 'João Silva';
-  static const String _userEmail = 'joao@exemplo.com';
+  final _reservationService = ReservationService();
 
   // Telas correspondentes a cada aba
   late final List<Widget> _screens;
@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Inicialização das telas com os dados do usuário
     _screens = [
       const RoomsScreen(),
-      // ReservationsScreen(currentUserId: _currentUserId),
+      const ReservationsScreen(),
       const AboutScreen(),
     ];
   }
@@ -44,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
@@ -57,30 +57,31 @@ class _HomeScreenState extends State<HomeScreen> {
       case 2:
         return 'Sobre';
       default:
-        return 'Coworking App';
+        return 'Belo Space'; 
     }
   }
 
   void _navigateToProfile(BuildContext context) {
-    // Usando a rota nomeada para manter consistência na navegação
     Navigator.pushNamed(
       context,
       '/profile',
-      arguments: {
-        'userName': _userName,
-        'userEmail': _userEmail,
-      },
     );
   }
 
-  Widget _buildBottomNavigationBar() {
+  Widget _buildBottomNavigationBar(BuildContext context) {
+    final theme = Theme.of(context);
     return BottomNavigationBar(
       currentIndex: _currentIndex,
       onTap: (index) => setState(() => _currentIndex = index),
-      selectedItemColor: const Color(0xFFB88E2F),
-      unselectedItemColor: Colors.grey,
+      
+      selectedItemColor: theme.colorScheme.primary,
+      unselectedItemColor: AppColors.textGrey,
+      backgroundColor: AppColors.white,
       showUnselectedLabels: true,
       type: BottomNavigationBarType.fixed,
+      
+      selectedLabelStyle: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
+      unselectedLabelStyle: theme.textTheme.bodySmall,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.meeting_room_outlined),
@@ -102,53 +103,50 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// Tela Sobre simples
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.business_center,
-            size: 80,
-            color: Color(0xFFB88E2F),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Coworking App',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+
+    return Container(
+      color: theme.scaffoldBackgroundColor,
+      padding: const EdgeInsets.all(24.0),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.business_center_outlined,
+              size: 80,
+              color: theme.colorScheme.primary,
             ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Versão 1.0.0',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey,
+            const SizedBox(height: 24),
+            Text(
+              'Belo Space Coworking',
+              style: textTheme.headlineSmall,
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'Um aplicativo para gerenciamento de reservas de salas de coworking.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 48),
-          const Text(
-            '© 2025 Coworking App',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
+            const SizedBox(height: 16),
+            Text(
+              'Versão 1.0.0',
+              style: textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+            Text(
+              'Aplicativo para visualização e gerenciamento simulado de reservas de salas de coworking.',
+              textAlign: TextAlign.center,
+              style: textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 48),
+            Text(
+              '© 2025 Belo Space',
+              style: textTheme.bodySmall,
+            ),
+          ],
+        ),
       ),
     );
   }

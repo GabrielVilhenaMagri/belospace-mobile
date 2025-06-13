@@ -1,80 +1,62 @@
-// models/reservation.dart
-
+import 'package:coworking_app/enums/reservation_status.dart';
 import 'package:intl/intl.dart';
 
 class Reservation {
-  final String workspaceName;
-  final int capacity;
-  final DateTime date;
-  final String startTime;
-  final String endTime;
-  final String status;
+  final int? id;
+  final int workspaceId;
   final int userId;
-  final DateTime? canceledAt; //
+  final DateTime reservationDate;
+  final ReservationStatus status;
+  final DateTime? canceledAt;
 
   Reservation({
-    required this.workspaceName,
-    required this.capacity,
-    required this.date,
-    required this.startTime,
-    required this.endTime,
-    required this.status,
+    this.id,
+    required this.workspaceId,
     required this.userId,
-    this.canceledAt, // Opcional
+    required this.reservationDate,
+    required this.status,
+    this.canceledAt,
   });
 
-  Reservation copyWith({
-    String? workspaceName,
-    int? capacity,
-    DateTime? date,
-    String? startTime,
-    String? endTime,
-    String? status,
-    int? userId,
-    DateTime? canceledAt,
-  }) {
+  factory Reservation.fromJson(Map<String, dynamic> json) {
+    // Extrai workspaceId do objeto workspace ou do campo direto
+    final workspaceId = json['workspace'] != null 
+        ? (json['workspace']['workspaceId'] as int?) 
+        : (json['workspaceId'] as int?);
+    
+    // Converte a data que pode vir em formatos diferentes
+    DateTime parseDate(dynamic dateValue) {
+      if (dateValue is DateTime) return dateValue;
+      if (dateValue is String) {
+        try {
+          return DateTime.parse(dateValue);
+        } catch (e) {
+          return DateTime.parse('$dateValue T00:00:00');
+        }
+      }
+      return DateTime.now();
+    }
+
     return Reservation(
-      workspaceName: workspaceName ?? this.workspaceName,
-      capacity: capacity ?? this.capacity,
-      date: date ?? this.date,
-      startTime: startTime ?? this.startTime,
-      endTime: endTime ?? this.endTime,
-      status: status ?? this.status,
-      userId: userId ?? this.userId,
-      canceledAt: canceledAt ?? this.canceledAt,
+      id: json['id'] as int?,
+      workspaceId: workspaceId ?? 0, // Valor padrão se for nulo
+      userId: json['userId'] as int? ?? 0, // Valor padrão se for nulo
+      reservationDate: parseDate(json['reservationDate']),
+      status: ReservationStatusExtension.fromString(json['status'] as String? ?? 'CONFIRMED'),
+      canceledAt: json['canceledAt'] != null ? parseDate(json['canceledAt']) : null,
     );
-  }
-
-  bool get shouldBeRemoved {
-    if (status != 'Cancelada' || canceledAt == null) return false;
-    return DateTime.now().difference(canceledAt!).inDays > 10;
-  }
-
-  factory Reservation.fromJson(Map<String,dynamic> json){
-    return Reservation(
-      workspaceName: json['workspaceName'],
-      capacity: json['capacity'],
-      date: DateFormat('dd-MM-yyyy').parse(json['date']),
-      startTime: json['startTime'],
-      endTime: json['endTime'],
-      status: json['status'],
-      userId: json['userId'],
-      canceledAt: json['canceledAt'] != null && json['canceledAt'] != ''
-        ? DateTime.parse(json['canceledAt'])
-        : null,
-  );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'workspaceName': workspaceName,
-      'capacity': capacity,
-      'date': DateFormat('dd-MM-yyyy').format(date),
+      'workspaceId': workspaceId,
       'userId': userId,
-      'status': status,
-      'startTime': startTime,
-      'endTime': endTime,
-      'canceledAt': canceledAt?.toIso8601String(),
+      'reservationDate': DateFormat('yyyy-MM-dd').format(reservationDate),
+       'status': status.name,
+      if (id != null) 'id': id,
+      if (canceledAt != null) 'canceledAt': canceledAt!.toIso8601String(),
     };
   }
 }
+
+

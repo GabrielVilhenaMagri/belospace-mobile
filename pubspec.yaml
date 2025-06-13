@@ -38,6 +38,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_secure_storage: ^9.2.4
   http: ^1.4.0
+  google_fonts: ^6.2.1 # Added for Poppins font
+  
   flutter_launcher_icons: ^0.10.0
 
 dev_dependencies:
@@ -58,7 +60,7 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - assets/images/logo_png_belospace.png
+    - assets/images/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

@@ -1,30 +1,30 @@
-import 'package:flutter/material.dart';
-import 'reservation.dart';
+// import 'package:flutter/material.dart';
+// import 'reservation.dart';
 
-class ReservationManager {
-  static final List<Reservation> _reservations = [];
-  static final List<VoidCallback> _listeners = [];
+// class ReservationManager {
+//   static final List<Reservation> _reservations = [];
+//   static final List<VoidCallback> _listeners = [];
 
-  // Retorna todas as reservas (ativas e canceladas)
-  static List<Reservation> get reservations => List.unmodifiable(_reservations);
+//   // Retorna todas as reservas (ativas e canceladas)
+//   static List<Reservation> get reservations => List.unmodifiable(_reservations);
 
-  // Retorna apenas reservas ativas
-  static List<Reservation> get activeReservations =>
-      _reservations.where((res) => res.status == 'Ativa').toList();
+//   // Retorna apenas reservas ativas
+//   static List<Reservation> get activeReservations =>
+//       _reservations.where((res) => res.status == 'Ativa').toList();
 
-  // Retorna apenas reservas canceladas que não devem ser removidas
-  static List<Reservation> get canceledReservations =>
-      _reservations.where((res) => res.status == 'Cancelada' && !res.shouldBeRemoved).toList();
+//   // Retorna apenas reservas canceladas que não devem ser removidas
+//   static List<Reservation> get canceledReservations =>
+//       _reservations.where((res) => res.status == 'Cancelada' && !res.shouldBeRemoved).toList();
 
-  static void addListener(VoidCallback listener) {
-    if (!_listeners.contains(listener)) {
-      _listeners.add(listener);
-    }
-  }
+//   static void addListener(VoidCallback listener) {
+//     if (!_listeners.contains(listener)) {
+//       _listeners.add(listener);
+//     }
+//   }
 
-  static void removeListener(VoidCallback listener) {
-    _listeners.remove(listener);
-  }
+//   static void removeListener(VoidCallback listener) {
+//     _listeners.remove(listener);
+//   }
 
   // static void addReservation(Reservation reservation) {
   //   // Verifica se já existe uma reserva com o mesmo ID
@@ -115,4 +115,4 @@ class ReservationManager {
   //   _notifyListeners();
   //   debugPrint('🗑️ Todas as reservas foram removidas');
   // }
-}
+// }
