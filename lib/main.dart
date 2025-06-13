@@ -45,28 +45,44 @@ class CoworkingApp extends StatelessWidget {
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
         '/rooms': (context) => const RoomsScreen(),
-        '/createReservation': (context) => const CreateReservationScreen(),
+        '/createReservation': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+          if (args != null) {
+            return CreateReservationScreen(
+              workspaceId: args['id'] as int,
+              roomName: args['roomName'] as String,
+              capacity: args['capacity'] as int,
+            );
+          }
+          return const Scaffold(
+            body: Center(child: Text('Erro: Dados do workspace não encontrados')),
+          );
+        },
         '/editReservation': (context) {
+          // Tratamento seguro para argumentos
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is Reservation) {
             return EditReservationScreen(reservation: args);
           }
+          // Fallback para caso de erro
           return const Scaffold(
             body: Center(child: Text('Erro: Dados da reserva não encontrados')),
           );
         },
         '/reservationDetails': (context) {
+          // Tratamento seguro para argumentos
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is Reservation) {
             return ReservationDetailsScreen(reservation: args);
           }
+          // Fallback para caso de erro
           return const Scaffold(
             body: Center(child: Text('Erro: Dados da reserva não encontrados')),
           );
         },
-        '/profile': (context) => const ProfileScreen(), // << vírgula aqui é ESSENCIAL
+        '/profile': (context) => const ProfileScreen()
       },
-
     );
   }
 }
+

@@ -1,51 +1,58 @@
+import 'package:coworking_app/enums/reservation_status.dart';
+import 'package:coworking_app/models/workspace.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:coworking_app/services/reservation_service.dart';
-import 'package:coworking_app/models/reservation.dart';
+import '../models/reservation.dart';
+import 'package:intl/intl.dart';
 import 'package:coworking_app/utils/app_colors.dart';
 
-class ReservationScreen extends StatefulWidget {
-  const ReservationScreen({super.key});
+class ReservationsScreen extends StatefulWidget {
+  const ReservationsScreen({super.key});
 
   @override
-  State<ReservationScreen> createState() => _ReservationScreenState();
+  State<ReservationsScreen> createState() => _ReservationsScreenState();
 }
 
-class _ReservationScreenState extends State<ReservationScreen> {
-  late Future<List<Map<String, dynamic>>> _reservationsFuture;
-  static final _reservationService = ReservationService();
+class _ReservationsScreenState extends State<ReservationsScreen> {
+  final ReservationService _reservationService = ReservationService();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
-  String _filterStatus = 'Ativa';
+  late Future<List<Reservation>> _reservationsFuture;
+  String _filterStatus = 'Todas';
 
   @override
   void initState() {
     super.initState();
-    _loadReservations();
+    _reservationsFuture = _loadReservations(); 
   }
 
-  Future<void> _loadReservations() async {
-    final userId = await _reservationService.getUserId();
-    if (mounted) {
-      setState(() {
-        _reservationsFuture = _reservationService.getReservationByUserId(userId!);
-      });
+  Future<List<Reservation>> _loadReservations() async {
+    try {
+      final userId = await _reservationService.getUserId();
+      if (userId != null) {
+        final reservations = await _reservationService.getReservationsByUserId(userId);
+        reservations.sort((a, b) => b.reservationDate.compareTo(a.reservationDate));
+        return reservations;
+      }
+      return [];
+    } catch (e) {
+      if (e.toString().contains('Unauthorized')) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacementNamed(context, '/login');
+        });
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao carregar reservas: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return [];
     }
   }
 
-  void _navigateToDetails(Reservation reservation) {
-    Navigator.pushNamed(context, '/reservationDetails', arguments: reservation)
-        .then((result) {
-      if (result == true) {
-        _loadReservations();
-      }
-    });
-  }
-
-  void _createNewReservation() {
-    Navigator.pushNamed(context, '/createReservation').then((result) {
-      if (result == true) {
-        _loadReservations();
-      }
+  Future<void> _refreshReservations() async {
+    setState(() {
+      _reservationsFuture = _loadReservations();
     });
   }
 
@@ -53,102 +60,67 @@ class _ReservationScreenState extends State<ReservationScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Minhas Reservas")),
-      body: Column(
-        children: [
-          _buildFilterChips(theme),
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _reservationsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text("Erro: ${snapshot.error}"));
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'Nenhuma reserva encontrada.',
-                      style: TextStyle(fontSize: 18),
-                    ),
-                  );
-                }
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (bool didPop, dynamic _) {
+        if (didPop) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _refreshReservations();
+          });
+        }
+      },
+      child: Scaffold(
+        body: RefreshIndicator(
+          onRefresh: _refreshReservations,
+          child: FutureBuilder<List<Reservation>>(
+            future: _reservationsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                final reservations = snapshot.data!
-                    .where((res) => _filterStatus == 'Todas' || res['status'] == _filterStatus)
-                    .toList();
-
-                if (reservations.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Nenhuma reserva com status "$_filterStatus".',
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyLarge?.copyWith(color: AppColors.textGrey),
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Erro: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
                       ),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  itemCount: reservations.length,
-                  itemBuilder: (context, index) {
-                    final res = reservations[index];
-                    final reservation = Reservation.fromJson(res);
-                    final isCancelled = reservation.status == 'Cancelada';
-
-                    return Card(
-                      color: isCancelled ? AppColors.darkBlue.withOpacity(0.7) : theme.cardTheme.color,
-                      margin: const EdgeInsets.only(bottom: 16.0),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
-                        title: Text(
-                          reservation.workspaceName,
-                          style: isCancelled ? theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.white,
-                            decoration: TextDecoration.lineThrough,
-                            decorationColor: AppColors.textGrey,
-                          ) : theme.textTheme.titleMedium?.copyWith(
-                            color: AppColors.textDark,
-                            decoration: null,
-                            decorationColor: AppColors.textDark,
-                          )
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_formatDate(reservation.date.toString())}',
-                              style: theme.textTheme.bodyMedium?.copyWith(color: isCancelled ? AppColors.white : AppColors.textDark),
-                            ),
-                            if (isCancelled && reservation.canceledAt != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  'Cancelada em: ${_dateFormat.format(reservation.canceledAt!)}',
-                                  style: theme.textTheme.bodySmall?.copyWith(color: AppColors.cancelRed.withOpacity(0.8)),
-                                ),
-                              ),
-                          ],
-                        ),
-                        trailing: _buildStatusChip(theme, reservation.status),
-                        onTap: () => _navigateToDetails(reservation),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _refreshReservations,
+                        child: const Text('Tentar novamente'),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 );
-              },
-            ),
+              }
+
+              final reservations = snapshot.data ?? [];
+              final filteredReservations = _filterStatus == 'Todas'
+                  ? reservations
+                  : reservations.where((res) {
+                      if (_filterStatus == 'Ativas') {
+                        return res.status == ReservationStatus.CONFIRMED;
+                      } else if (_filterStatus == 'Canceladas') {
+                        return res.status == ReservationStatus.CANCELLED;
+                      }
+                      return res.status.name == _filterStatus;
+                    }).toList();
+
+              return Column(
+                children: [
+                  _buildFilterChips(theme),
+                  Expanded(
+                    child: _buildReservationsList(theme, filteredReservations),
+                  ),
+                ],
+              );
+            },
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _createNewReservation,
-        child: const Icon(Icons.add),
+        ),
       ),
     );
   }
@@ -159,7 +131,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       child: Wrap(
         spacing: 8.0,
         runSpacing: 4.0,
-        children: ["Todas", "Ativa", "Cancelada"].map((status) {
+        children: ["Todas", "Ativas", "Canceladas"].map((status) {
           final bool isSelected = _filterStatus == status;
           return FilterChip(
             label: Text(status),
@@ -176,7 +148,9 @@ class _ReservationScreenState extends State<ReservationScreen> {
             selectedColor: theme.colorScheme.primary,
             checkmarkColor: AppColors.white,
             shape: StadiumBorder(
-              side: BorderSide(color: isSelected ? theme.colorScheme.primary : AppColors.borderGrey),
+              side: BorderSide(
+                color: isSelected ? theme.colorScheme.primary : AppColors.borderGrey,
+              ),
             ),
           );
         }).toList(),
@@ -184,16 +158,111 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
-  Widget _buildStatusChip(ThemeData theme, String status) {
+  Widget _buildReservationsList(ThemeData theme, List<Reservation> reservations) {
+    final textTheme = theme.textTheme;
+
+    if (reservations.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            _filterStatus == 'Todas'
+                ? 'Você ainda não possui reservas.'
+                : 'Nenhuma reserva encontrada com o status "$_filterStatus".',
+            textAlign: TextAlign.center,
+            style: textTheme.bodyLarge?.copyWith(color: AppColors.textGrey),
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      itemCount: reservations.length,
+      itemBuilder: (context, index) {
+        final reservation = reservations[index];
+        final bool isCancelled = reservation.status == ReservationStatus.CANCELLED;
+
+        return FutureBuilder<Workspace?>(
+          future: _reservationService.getWorkspaceById(reservation.workspaceId),
+          builder: (context, snapshot) {
+            final workspaceName = snapshot.hasData
+                ? snapshot.data!.name
+                : 'Sala ${reservation.workspaceId}';
+
+            return Card(
+              color: isCancelled
+                  ? AppColors.darkBlue.withOpacity(0.7)
+                  : theme.cardTheme.color,
+              margin: const EdgeInsets.only(bottom: 16.0),
+              child: ListTile(
+                contentPadding:
+                    const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+                title: Text(
+                  workspaceName,
+                  style: isCancelled
+                      ? theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.white,
+                          decoration: TextDecoration.lineThrough,
+                          decorationColor: AppColors.textGrey,
+                        )
+                      : theme.textTheme.titleMedium?.copyWith(
+                          color: AppColors.textDark,
+                          decoration: null,
+                        ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      'Data: ${_dateFormat.format(reservation.reservationDate)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isCancelled ? AppColors.white : AppColors.textDark,
+                      ),
+                    ),
+                    if (isCancelled && reservation.canceledAt != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          'Cancelada em: ${_dateFormat.format(reservation.canceledAt!)}',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.cancelRed.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                trailing: _buildStatusChip(theme, reservation.status),
+                onTap: () async {
+                  final result = await Navigator.pushNamed(
+                    context,
+                    '/reservationDetails',
+                    arguments: reservation,
+                  );
+                  if (result == true) {
+                    await _refreshReservations();
+                  }
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildStatusChip(ThemeData theme, ReservationStatus status) {
     Color chipColor;
     Color textColor;
+    String label = status.displayName;
 
     switch (status) {
-      case 'Ativa':
+      case ReservationStatus.CONFIRMED:
         chipColor = Colors.green.shade100;
         textColor = Colors.green.shade800;
         break;
-      case 'Cancelada':
+      case ReservationStatus.CANCELLED:
         chipColor = Colors.red.shade100;
         textColor = Colors.red.shade800;
         break;
@@ -203,23 +272,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
     }
 
     return Chip(
-      label: Text(status),
-      labelStyle: theme.textTheme.bodySmall?.copyWith(color: textColor, fontWeight: FontWeight.bold),
+      label: Text(label),
+      labelStyle: theme.textTheme.bodySmall?.copyWith(
+        color: textColor,
+        fontWeight: FontWeight.bold,
+      ),
       backgroundColor: chipColor,
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
       visualDensity: VisualDensity.compact,
     );
-  }
-
-  String _formatDate(String date) {
-    try {
-      return _dateFormat.format(DateTime.parse(date));
-    } catch (e) {
-      return date;
-    }
-  }
-
-  String _formatTime(String time) {
-    return time;
   }
 }

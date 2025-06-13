@@ -32,41 +32,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return emailRegex.hasMatch(email);
   }
 
-  void _register() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+void _register() async {
+  if (_formKey.currentState!.validate()) {
+    setState(() => _isLoading = true);
 
-      final success = await AuthService.register(
-        _nameController.text,
-        _emailController.text,
-        _passwordController.text,
-      );
+    final result = await AuthService.register(
+      _nameController.text,
+      _emailController.text,
+      _passwordController.text,
+    );
 
-      // Se o State foi desmontado, saia
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result['message']),
+        backgroundColor: result['success'] ? Colors.green : Colors.red,
+      ),
+    );
+
+    if (result['success']) {
+      await Future.delayed(const Duration(seconds: 1));
       if (!mounted) return;
-
-      setState(() => _isLoading = false);
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registro realizado com sucesso!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pushReplacementNamed(context, '/login');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Falha no registro. Tente novamente'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

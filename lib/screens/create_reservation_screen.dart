@@ -3,23 +3,26 @@ import 'package:intl/intl.dart';
 import 'package:coworking_app/utils/app_colors.dart';
 import '../models/reservation.dart';
 import '../services/reservation_service.dart';
-import '../components/header.dart';
+import '../enums/reservation_status.dart'; 
 
 class CreateReservationScreen extends StatefulWidget {
+  final int workspaceId;
   final String roomName;
   final int capacity;
 
   const CreateReservationScreen({
-    Key? key,
+    super.key,
+    required this.workspaceId,
     required this.roomName,
     required this.capacity,
-  }) : super(key: key);
+  });
 
   @override
   State<CreateReservationScreen> createState() => _CreateReservationScreenState();
 }
 
 class _CreateReservationScreenState extends State<CreateReservationScreen> {
+  final _reservationService = ReservationService();
   final _formKey = GlobalKey<FormState>();
   final _dateController = TextEditingController();
   bool _isLoading = false;
@@ -81,58 +84,61 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     }
   }
 
-  Future<void> _submit() async {
-    final reservationService = ReservationService();
+Future<void> _submit() async {
+  if (!_formKey.currentState!.validate()) return;
 
-    if (!_formKey.currentState!.validate()) return;
+  setState(() => _isLoading = true);
 
-    setState(() {
-      _isLoading = true;
-    });
+  try {
+    final selectedDate = _displayDateFormat.parse(_dateController.text);
+    final userId = await _reservationService.getUserId();
 
-    try {
-      final selectedDate = _displayDateFormat.parse(_dateController.text);
-      final userId = await reservationService.getUserId();
-
-      if (userId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro: usuário não autenticado')),
-        );
-        return;
-      }
-
-      final newReservation = Reservation(
-        workspaceName: _workspaceNameController.text,
-        capacity: int.parse(_capacityController.text),
-        date: selectedDate,
-        status: 'Ativa',
-        userId: userId,
-      );
-
-      final success = await reservationService.createReservation(newReservation);
-
-      if (!mounted) return;
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Reserva criada com sucesso!"), backgroundColor: Colors.green),
-        );
-        Navigator.pop(context, true);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao criar reserva.'), backgroundColor: Colors.red),
-        );
-      }
-    } catch (e) {
+    if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro inesperado: $e'), backgroundColor: Colors.red),
+        const SnackBar(content: Text('Erro: usuário não autenticado')),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      return;
     }
+
+    final newReservation = Reservation(
+      workspaceId: widget.workspaceId,
+      userId: userId,
+      reservationDate: selectedDate,
+      status: ReservationStatus.CONFIRMED,
+    );
+
+    final success = await _reservationService.createReservation(newReservation);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Reserva criada com sucesso!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context, true); // Força atualização
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Falha ao criar reserva'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Erro: ${e.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } finally {
+    if (!mounted) return;
+    setState(() => _isLoading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +157,6 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
                 controller: _capacityController,
                 label: 'Capacidade',
                 icon: Icons.people,
-                keyboardType: TextInputType.number,
                 readOnly: true,
               ),
               const SizedBox(height: 16),
@@ -183,7 +188,6 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     required String label,
     required IconData icon,
     required bool readOnly,
-    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextFormField(
       controller: controller,
@@ -223,3 +227,5 @@ class _CreateReservationScreenState extends State<CreateReservationScreen> {
     );
   }
 }
+
+

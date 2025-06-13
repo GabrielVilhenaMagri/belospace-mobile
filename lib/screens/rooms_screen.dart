@@ -1,7 +1,7 @@
+import 'package:coworking_app/services/reservation_service.dart';
 import 'package:flutter/material.dart';
-import '../models/reservation.dart';
-import '../models/reservation_manager.dart';
 import 'package:intl/intl.dart';
+import 'package:coworking_app/models/workspace.dart';
 import 'package:coworking_app/utils/app_colors.dart';
 
 class RoomsScreen extends StatefulWidget {
@@ -12,70 +12,52 @@ class RoomsScreen extends StatefulWidget {
 }
 
 class _RoomsScreenState extends State<RoomsScreen> {
-  final List<Map<String, dynamic>> _availableRooms = [
-    {
-      'id': 'room1',
-      'name': 'Sala Privativa 1',
-      'capacity': 4,
-      'imagePath': 'assets/images/2de943ab-b3af-4451-a5c6-b275b23ed0d7.jpg',
-      'description': 'Espaço tranquilo e reservado para equipes pequenas.',
-    },
-    {
-      'id': 'room2',
-      'name': 'Sala de Reunião Alpha',
-      'capacity': 8,
-      'imagePath': 'assets/images/158a420c-4099-4b7d-835f-061f03bbf473.jpg',
-      'description':
-          'Equipada com TV e quadro branco, ideal para apresentações.',
-    },
-    {
-      'id': 'room3',
-      'name': 'Mesa Privativa Beta',
-      'capacity': 1,
-      'imagePath': 'assets/images/22441bb1-c79e-466c-9a3f-8e7683546277.jpg',
-      'description':
-          'Estação de trabalho individual em ambiente compartilhado.',
-    },
-    {
-      'id': 'room4',
-      'name': 'Auditório Lab',
-      'capacity': 20,
-      'imagePath': 'assets/images/d05872d2-0f56-4aa8-85cc-6731e27ef119.jpg',
-      'description': 'Espaço amplo para eventos e workshops.',
-    },
-  ];
-
+  late Future<List<Workspace>> _workspaceFuture;
   DateTime? _selectedDate;
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
+  final _reservationService = ReservationService();
 
   @override
   void initState() {
     super.initState();
+    _workspaceFuture = _reservationService.getAllWorkspace(); 
   }
 
-  void _selectRoom(String roomName, int capacity) {
+  void _selectRoom(Workspace workspace) {
     Navigator.pushNamed(
       context,
       '/createReservation',
-      arguments: {'roomName': roomName, 'capacity': capacity},
+      arguments: {'id': workspace.workspaceId, 'roomName': workspace.name, 'capacity': workspace.capacity},
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
     final textTheme = theme.textTheme;
 
     return Container(
       color: theme.scaffoldBackgroundColor,
-      child: ListView.builder(
+      child: FutureBuilder<List<Workspace>>(
+  future: _workspaceFuture,
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    } else if (snapshot.hasError) {
+      return Center(child: Text('Erro ao carregar as salas: ${snapshot.error}'));
+    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+      return const Center(child: Text('Nenhuma _reservationFuture disponível'));
+    } else {
+      final workspaces = snapshot.data!;
+      return ListView.builder(
         padding: const EdgeInsets.all(16.0),
-        itemCount: _availableRooms.length,
+        itemCount: workspaces.length,
         itemBuilder: (context, index) {
-          final room = _availableRooms[index];
+          final room = workspaces[index];
           return Card(
             margin: const EdgeInsets.only(bottom: 16.0),
-            color: AppColors.darkBlue, // escurece o card
+            color: AppColors.darkBlue,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -84,50 +66,38 @@ class _RoomsScreenState extends State<RoomsScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8.0),
                     child: Image.asset(
-                      room["imagePath"],
+                      _reservationService.getWorkspaceImagePatch(room.workspaceId!),
                       height: 150,
                       width: double.infinity,
                       fit: BoxFit.cover,
                     ),
                   ),
-
                   const SizedBox(height: 16),
                   Text(
-                    room['name'],
-                    style: textTheme.titleLarge?.copyWith(
-                      color: AppColors.white,
-                    ),
+                    room.name,
+                    style: textTheme.titleLarge?.copyWith(color: AppColors.white),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.people_outline,
-                        color: AppColors.textGrey,
-                        size: 18,
-                      ),
+                      const Icon(Icons.people_outline, color: AppColors.textGrey, size: 18),
                       const SizedBox(width: 4),
                       Text(
-                        '${room['capacity']} pessoa(s)',
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: AppColors.textGrey,
-                        ),
+                        '${room.capacity} pessoa(s)',
+                        style: textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    room['description'],
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textGrey,
-                    ),
+                    room.description ?? 'Sem descrição.',
+                    style: textTheme.bodyMedium?.copyWith(color: AppColors.textGrey),
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed:
-                          () => _selectRoom(room['name'], room['capacity']),
+                      onPressed: () => _selectRoom(room),
                       child: const Text("Reservar"),
                     ),
                   ),
@@ -136,7 +106,10 @@ class _RoomsScreenState extends State<RoomsScreen> {
             ),
           );
         },
-      ),
-    );
-  }
-}
+      );
+    }
+  },
+),
+);
+}}
+
