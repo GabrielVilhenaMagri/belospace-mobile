@@ -3,6 +3,7 @@ import 'package:coworking_app/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../components/header.dart';
 import 'rooms_screen.dart';
+import '../global_keys.dart';
 import 'reservations_screen.dart';
 
 
@@ -27,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     // Inicialização das telas com os dados do usuário
     _screens = [
       const RoomsScreen(),
-      const ReservationsScreen(),
+      ReservationsScreen(key: reservationsScreenKey),
       const AboutScreen(),
     ];
   }
