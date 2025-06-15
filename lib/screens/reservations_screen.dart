@@ -10,10 +10,10 @@ class ReservationsScreen extends StatefulWidget {
   const ReservationsScreen({super.key});
 
   @override
-  State<ReservationsScreen> createState() => _ReservationsScreenState();
+  State<ReservationsScreen> createState() => ReservationsScreenState();
 }
 
-class _ReservationsScreenState extends State<ReservationsScreen> {
+class ReservationsScreenState extends State<ReservationsScreen> {
   final ReservationService _reservationService = ReservationService();
   final DateFormat _dateFormat = DateFormat('dd/MM/yyyy');
   late Future<List<Reservation>> _reservationsFuture;
@@ -22,7 +22,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   @override
   void initState() {
     super.initState();
-    _reservationsFuture = _loadReservations(); 
+    _reservationsFuture = _loadReservations();
   }
 
   Future<List<Reservation>> _loadReservations() async {
@@ -50,7 +50,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     }
   }
 
-  Future<void> _refreshReservations() async {
+  Future<void> refreshReservations() async { // Método tornado público
     setState(() {
       _reservationsFuture = _loadReservations();
     });
@@ -65,13 +65,13 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       onPopInvokedWithResult: (bool didPop, dynamic _) {
         if (didPop) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            _refreshReservations();
+            refreshReservations(); // Chama o método público
           });
         }
       },
       child: Scaffold(
         body: RefreshIndicator(
-          onRefresh: _refreshReservations,
+          onRefresh: refreshReservations, // Chama o método público
           child: FutureBuilder<List<Reservation>>(
             future: _reservationsFuture,
             builder: (context, snapshot) {
@@ -90,7 +90,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: _refreshReservations,
+                        onPressed: refreshReservations, // Chama o método público
                         child: const Text('Tentar novamente'),
                       ),
                     ],
@@ -226,7 +226,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
                           'Cancelada em: ${_dateFormat.format(reservation.canceledAt!)}',
-                          style: textTheme.bodySmall?.copyWith(
+                          style: theme.textTheme.bodySmall?.copyWith(
                             color: AppColors.cancelRed.withOpacity(0.8),
                           ),
                         ),
@@ -241,7 +241,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     arguments: reservation,
                   );
                   if (result == true) {
-                    await _refreshReservations();
+                    await refreshReservations(); // Chama o método público
                   }
                 },
               ),
@@ -283,3 +283,4 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     );
   }
 }
+

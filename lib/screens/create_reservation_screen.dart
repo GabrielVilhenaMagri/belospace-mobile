@@ -3,7 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:coworking_app/utils/app_colors.dart';
 import '../models/reservation.dart';
 import '../services/reservation_service.dart';
-import '../enums/reservation_status.dart'; 
+import '../enums/reservation_status.dart';
+import '../global_keys.dart'; 
 
 class CreateReservationScreen extends StatefulWidget {
   final int workspaceId;
@@ -118,6 +119,8 @@ Future<void> _submit() async {
           backgroundColor: Colors.green,
         ),
       );
+      // Tenta chamar o refresh da ReservationsScreen via GlobalKey
+      reservationsScreenKey.currentState?.refreshReservations();
       Navigator.pop(context, true); // Força atualização
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -227,5 +230,4 @@ Future<void> _submit() async {
     );
   }
 }
-
 

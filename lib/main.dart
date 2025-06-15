@@ -8,6 +8,8 @@ import 'screens/edit_reservation_screen.dart';
 import 'models/reservation.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
+import 'global_keys.dart';
+import 'screens/reservations_screen.dart'; 
 
 void main() {
   runApp(const CoworkingApp());
@@ -80,9 +82,11 @@ class CoworkingApp extends StatelessWidget {
             body: Center(child: Text('Erro: Dados da reserva não encontrados')),
           );
         },
-        '/profile': (context) => const ProfileScreen()
+        '/profile': (context) => const ProfileScreen(),
+        '/reservations': (context) => ReservationsScreen(key: reservationsScreenKey), // Adiciona a chave global
       },
     );
   }
 }
+
 
